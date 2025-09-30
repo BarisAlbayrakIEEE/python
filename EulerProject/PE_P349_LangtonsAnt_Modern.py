@@ -7,6 +7,15 @@ Description:
     1. Encoding the move of the ant based on the direction and color
     2. Detecting the repeating pattern in the highway by an algorithm which combines KMP with bit manipulation
 
+Nomenclature:
+  N: The number of moves required by Project Euler Problem #349
+  T: Number of moves traveled in the arbitrary region (unknown)
+  P1: Number of moves used to delay the pattern detection for the arbitrary region
+  P2: Number of moves limitation to terminate analysis
+  n: Repeat count requirement for a pattern to be acceptable
+  w: After P1 moves, perform pattern detection once in every w moves
+  Z: The limitation for the number of rows and columns of the grid - ARRAY_SIZE_GRID
+
 Assumptions:
   See the docstring of PE_P349_LangtonsAnt.py.
 
@@ -31,34 +40,37 @@ Method:
     
     Hence, we have 8 values that requires 3 bits.
 
-  I will store the move codes in a bitarray: move_codes.
+  I will store the above move codes in a bitarray: move_codes.
   This bitarray will be used to detect the pattern by using the bitwise equality operation.
 
-  Another data to be stored is the move ids for one of the 8 move codes (e.g. 0).
+  Another data to be stored is the move indices (i.e. occurances) for one of the 8 move codes (e.g. 0).
   This array would help to activate the KMP algorithm.
-  Lets assume that the move ids for code 0 are: [80, 90, 100, 110, 124, 228, 332, ...].
-  This means that code 0 is achieved at the end of this move ids.
-  when we analyze the occurances, it looks like there exists a pattern with the length of 10.
-  But, 124 does not satisfy the pattern condition.
-  10 satisfies the pattern condition 3 times but the 4th one is not achieved.
-  Similarly, 104 satisfies the pattern condition 3 times as well.
-  If it satisfies the conditin n times (e.g. 10) there may exist a pattern starting from the 110th move.
+  Lets assume that the occurances for code 0 are: [80, 90, 100, 110, 130, 234, 338, 442, ...].
+  This means that code 0 is achieved at the end of these move indices.
+  When we analyze the occurances, it looks like there exists a pattern with a length of 10 moves.
+  10 satisfies the pattern condition 3 times starting from the 8th move but the 4th one is not achieved
+  as 130 does not satisfy the pattern condition.
+  Similarly, 104 satisfies the pattern condition 3 times starting from the 130th move.
+  If it satisfies the condition n times (e.g. 10) there may exist a pattern starting from the 130th move.
   We already know that the length of the pattern is 104.
   So it will satisfy the condition.
   Up to here, I use a modified form of KMP algorithm.
-  In summary, from this algorithm we achieved two numbers: 10 and 104.
-  Lets assume that both satisfies the pattern condition m times.
-  I will perform the pattern detection
-  for each number achieved in this algorithm (i.e. 10 and 104).
+  In summary, from this algorithm we achieved two pairs of values: 80-10 and 130-104.
+  Lets assume that both satisfies the pattern condition n times.
+  I will perform a bitwise pattern detection for each pair achieved in this algorithm.
 
   Remember that I stored the move codes in a bitarray.
-  The above algorithm is an initial step to speed up the pattern detection.
   In order to detect the pattern, we need to inspect
-  the remaining codes in between the two occurances of code 0 (e.g. between moves 80 and 90).
-  For this purpose, I will use bit operations instead of the KMP algorithm.
+  the codes in between the two occurances of code 0 (e.g. between moves 80 and 90).
+  For this purpose, I will perform the bitwise equality inspection instead of the KMP algorithm.
   I will create slices from the bitarray and inspect for bitwise equality.
-  The pattern is detected if the equality holds for m times:
+  The pattern is detected if the equality holds for n times:
     move_codes[80,90] == move_codes[91,101] == move_codes[102,112] == move_codes[113,123] == ...
+  
+  The efficiency of the bitwise inspection comes from the two facts:
+    1. The python's bitarray library is a C extension and performs efficiently.
+    2. Bit equality inspection involves the exact number of bits (i.e. 3 bits) to be inspected
+       while integer inspection would involve unused bits of the integer data type as well (e.g. 32-3=29).
   
   
 
@@ -89,7 +101,7 @@ Time Complexity:
   For the 1st part, the time complexity is O(k1P1) where
   k1 is a constant for the actions performed for the ant's move.
   
-  Pattern requirement states that a sequence of move IDs must repeat
+  Pattern requirement states that a sequence of move indices must repeat
   the requested amount of times (n).
   n is initialized in the main routine.
   
@@ -114,7 +126,7 @@ Time Complexity:
   from the p-th till the n-th in the backward direction.
   Hence, the 1st loop runs for [(p - n) ~ p] times.
   
-  The 2nd loop performs the comparison of the move IDs
+  The 2nd loop performs the comparison of the move indices
   to check whether they are repeating n times or not.
   As we assumed that each move ID is repeated once in r moves,
   the number of moves between the two occurrences is r
@@ -174,21 +186,21 @@ GRID_CELL_COLORS = np.zeros(
   shape=(ARRAY_SIZE_GRID, ARRAY_SIZE_GRID),
   dtype=np.bool_)
 
-# Stores the reduced move IDs indexed by move indices:
+# Stores the reduced move indices indexed by move indices:
 # MOVE_INDEX_TO_ID_FULL[move_index]: uint8:
 # See get_move_ids for the definition of the reduced move ID
 MOVE_INDEX_TO_ID_REDUCED = np.zeros(
   shape=(ARRAY_SIZE_MOVE_INDEX),
   dtype=np.uint8)
 
-# Stores the full move IDs indexed by move indices:
+# Stores the full move indices indexed by move indices:
 # MOVE_INDEX_TO_ID_FULL[move_index]: uint32:
 # See get_move_ids for the definition of the full move id
 MOVE_INDEX_TO_ID_FULL = np.zeros(
   shape=(ARRAY_SIZE_MOVE_INDEX),
   dtype=np.uint32)
 
-# Stores the occurrence/count of the reduced move ids indexed by the reduced move id:
+# Stores the occurrence/count of the reduced move indices indexed by the reduced move id:
 # MOVE_ID_TO_REDUCED_OCCURRENCE[move_id_reduced]: uint16:
 # The number of occurrences of move_id_reduced during the travel
 # One of the values in the range: [0, ARRAY_SIZE_MOVE_INDEX]:
@@ -321,8 +333,8 @@ def detect_pattern(current_move_index, pattern_repeat_count_req):
   
   Method:
     The method is based on the occurrences of a reduced move id.
-    Consider the reduced move ids as letters (a, b, c, ...).
-    Consider the sequence of reduced move ids as a string: ...abacadabacadabacada
+    Consider the reduced move indices as letters (a, b, c, ...).
+    Consider the sequence of reduced move indices as a string: ...abacadabacadabacada
     Consider "a" is the reduced move id corresponding to the input move.
     As you can see, abacad is the pattern we are looking for,
     but in that pattern, "a" is repeated many times.
@@ -348,7 +360,7 @@ def detect_pattern(current_move_index, pattern_repeat_count_req):
     6. Run another loop with a range of pattern length.
     
     For the kth cycle of the 3rd loop:
-    7. Inspect the reduced and the full move ids to see whether a pattern exists.
+    7. Inspect the reduced and the full move indices to see whether a pattern exists.
     
     8. Return the pattern move indices if found, otherwise return None.
   
@@ -402,7 +414,7 @@ def inspect_pattern_repeated_req(
     pattern_start_move_index_ith):
   """
   Description:
-    Inspects the reduced and the full move ids to check whether a sequence of the 
+    Inspects the reduced and the full move indices to check whether a sequence of the 
     pattern_length number of moves starting at the ith move index repeats n times.
 
   Parameters:
@@ -426,7 +438,7 @@ def inspect_pattern_repeated_req(
       pattern_start_move_index_ith -
       pattern_length * (i_pattern_repeat + 1))
 
-    # Inspect the reduced and the full move ids for the jth pattern repeat
+    # Inspect the reduced and the full move indices for the jth pattern repeat
     if not inspect_pattern_once(
         pattern_length,
         pattern_start_move_index_ith,
@@ -468,14 +480,14 @@ def inspect_pattern_once(
   Modifies:
     None
   """
-  # Get the difference between the corresponding 1st pattern move ids
+  # Get the difference between the corresponding 1st pattern move indices
   diff_full_1st = np.int32(
     np.int32(MOVE_INDEX_TO_ID_FULL[pattern_start_move_index_ith]) -
     np.int32(MOVE_INDEX_TO_ID_FULL[pattern_start_move_index_jth]))
 
   # Run a loop with the range of the input pattern length
   for i in range(1, pattern_length):
-    # The difference between the corresponding pattern move ids must be the same
+    # The difference between the corresponding pattern move indices must be the same
     diff_full_current = np.int32(
       np.int32(MOVE_INDEX_TO_ID_FULL[pattern_start_move_index_ith + i]) -
       np.int32(MOVE_INDEX_TO_ID_FULL[pattern_start_move_index_jth + i]))
@@ -555,7 +567,7 @@ def perform_limited_travel(
     else:
       black_count -= 1
   
-    # Get the move ids before moving the ant
+    # Get the move indices before moving the ant
     move_id_reduced, move_id_full = get_move_ids(
       GRID_CELL_COLORS[row][clm], dir_x, dir_y, row, clm)
   
