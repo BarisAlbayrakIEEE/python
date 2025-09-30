@@ -3,120 +3,67 @@ Description:
   Project Euler Problem #349
   Langton's ant
   https://projecteuler.net/problem=349
-  Method: Brute force
-
-Nomenclature:
-  N: The number of moves required by Project Euler Problem #349
-  T: Number of moves traveled in the arbitrary region (unknown)
-  P1: Number of moves used to delay the pattern detection for the arbitrary region
-  P2: Number of moves limitation to terminate analysis
-  n: Repeat count requirement for a pattern to be acceptable
-  w: After P1 moves, perform pattern detection once in every w moves
-  Z: The limitation for the number of rows and columns of the grid - ARRAY_SIZE_GRID
+  Method: The brute force method is improved by:
+    1. Encoding the move of the ant based on the direction and color
+    2. Detecting the repeating pattern in the highway by an algorithm which combines KMP with bit manipulation
 
 Assumptions:
-  The studies on the problem show that,
-  initially, the ant moves arbitrarily for about 10,000 moves.
-  Later, it starts to follow a pattern in its famous highway.
-  Throughout this document, the first portion
-  will be called arbitrary region and
-  the variables corresponding to this region
-  will have the suffix: _arb
-  The highway portion will have the suffix: _highway
-  The pattern followed in the highway will have the suffix: _pattern
-  
-  Although a pattern in a data can be detected easily,
-  it's hard to prove that the pattern is continuous
-  without inspecting the whole data.
-  The proof can only be supplied by mathematical tools
-  in the case of Langton's ant.
-  However, up to now, there is no acceptable proof for the problem.
-  Due to the absence of a mathematical proof,
-  any pattern repeated n times will be accepted to be the main pattern.
-  n is initialized in the main routine.
+  See the docstring of PE_P349_LangtonsAnt.py.
 
 Method:
-  The ant may visit a cell a number of times during its travel.
-  Hence, the problem is naturally dynamic.
-  The pattern detection must be performed after each move of the ant.
-  However, running the pattern detection is a waste of time
-  before the ant starts its highway run.
-  The detection procedure is delayed by a constant number of moves (P1).
-  The routine terminates if the pattern cannot be detected
-  within a constant number of moves (P2).
-  P1 and P2 are initialized in the main routine.
-  
-  Hence, the method contains two parts:
-    1. Run the ant for P1 moves without pattern detection.
-    2. Run the ant for [P2 - P1] moves, performing pattern detection once
-       in every w moves.
-  
-  See `detect_pattern` method's docstring for the details of the pattern detection.
-  
-  Each move of the travel is assigned to two ids,
-  one excluding the grid information while the other including.
-  Hence, the 1st move id contains the following information:
-    a. The current color of the cell before flipping,
-    b. The orientation of the ant in x-direction before rotation.
-    c. The orientation of the ant in y-direction before rotation
-  The three input parameters yield 8 possible values for the 1st move id
-  as the 2nd and 3rd are constrained by NEWS (North, East, ...) directions.
-  
-  The 2nd move id, additionally, contains the grid locations:
-    a. Current grid location in x-direction
-    b. Current grid location in y-direction
-  
-  The five input parameters yield [8 * ARRAY_SIZE_GRID^2] possible values
-  for the 2nd move id.
-  
-  By defining the move ids, we can normalize
-  the detection of the pattern in a 2D colour grid of 1-bit-cells into
-  the detection of the pattern in a 1D sequence of ids.
-  
-  During the travel, the following static global arrays are stored:
-    1. The reduced id (the 1st id above) of each move: MOVE_INDEX_TO_ID_REDUCED
-    2. The full id (the 2nd id above) of each move: MOVE_INDEX_TO_ID_FULL
-    3. The count of the occurrences of each move id: MOVE_ID_TO_REDUCED_OCCURANCE
-    4. The index of each occurrence of each move id: MOVE_ID_TO_REDUCED_INDEX
-    5. The color of each cell: GRID_CELL_COLORS
-    6. The total black cell count for each move: MOVE_INDEX_TO_BLACK_COUNT
-  
-  The above arrays relate the move indices, ids, and black cell counts.
-  The first four arrays are very efficient in the pattern detection,
-  while the last two are used to determine the black cell count.
+  Similar to the brute force solution, I will assume that P2 number of moves (e.g. 12000)
+  would be enough to detect the highway pattern.
+  Hence, in the first part I will let the ant move P2 times
+  and store the data required to detect the highway pattern and to determine the black cell count.
 
-CAUTION:
-  The ant is known to follow some patterns in the arbitrary region as well.
-  These fake patterns must be escaped while searching for the highway pattern.
-  For example, with the following configuration, the result is wrong:
-    P1 = 1
-    w = 1
-    n = 10
+  Then, I will perform the pattern detection and determine the blacck cell count
+  using the prepared data.
   
-  We have two options in order to escape from the fake patterns:
-    1. Ensure P1 ~ T -> e.g. P1 = 10000
-    2. Use larger n -> e.g. n = 100 (still risky!!!)
-  
-  Anyway, safety of the algorithm is dependent on the constants used!!!
+  The move of the ant is encoded by:
+    1. 4 directions are simulated by:
+      * 0: east (x+1, y)
+      * 1: south (x, y+1)
+      * 2: west (x-1, y)
+      * 3: north (x, y-1)
+    2. The color of the cell after the move:
+      * 0: white
+      * 1: black
+    
+    Hence, we have 8 values that requires 3 bits.
 
-Note:
-  Keep in mind that another pattern can be obtained
-  starting from a point within a pattern.
-  For example, consider the following string:
-  abcde-abcde-abcde-abcde-...
-  The real pattern is abcde-
-  However, bcde-a or cde-ab (or else) are also patterns.
-  Besides, we are asked to find the number of black cells,
-  but not to find the exact pattern.
+  I will store the move codes in a bitarray: move_codes.
+  This bitarray will be used to detect the pattern by using the bitwise equality operation.
+
+  Another data to be stored is the move ids for one of the 8 move codes (e.g. 0).
+  This array would help to activate the KMP algorithm.
+  Lets assume that the move ids for code 0 are: [80, 90, 100, 110, 124, 228, 332, ...].
+  This means that code 0 is achieved at the end of this move ids.
+  when we analyze the occurances, it looks like there exists a pattern with the length of 10.
+  But, 124 does not satisfy the pattern condition.
+  10 satisfies the pattern condition 3 times but the 4th one is not achieved.
+  Similarly, 104 satisfies the pattern condition 3 times as well.
+  If it satisfies the conditin n times (e.g. 10) there may exist a pattern starting from the 110th move.
+  We already know that the length of the pattern is 104.
+  So it will satisfy the condition.
+  Up to here, I use a modified form of KMP algorithm.
+  In summary, from this algorithm we achieved two numbers: 10 and 104.
+  Lets assume that both satisfies the pattern condition m times.
+  I will perform the pattern detection
+  for each number achieved in this algorithm (i.e. 10 and 104).
+
+  Remember that I stored the move codes in a bitarray.
+  The above algorithm is an initial step to speed up the pattern detection.
+  In order to detect the pattern, we need to inspect
+  the remaining codes in between the two occurances of code 0 (e.g. between moves 80 and 90).
+  For this purpose, I will use bit operations instead of the KMP algorithm.
+  I will create slices from the bitarray and inspect for bitwise equality.
+  The pattern is detected if the equality holds for m times:
+    move_codes[80,90] == move_codes[91,101] == move_codes[102,112] == move_codes[113,123] == ...
   
-  Hence, the requirement to detect the pattern is about P2, 
-  and it should be large enough to ensure some portion of the highway is traveled.
   
-  However, this requirement is not the only one to validate this algorithm.
-  As stated in the CAUTION above, the fake patterns must be escaped
-  for the safety of the results.
-  
-  This is the 2nd requirement for this algorithm to work properly.
+
+
+
 
 Space Complexity:
   The problem requests the black cell count after N = 1E18 moves.
