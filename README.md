@@ -13,7 +13,7 @@ The repository currently includes the following items:
 - The solutions to [Project Euler problems](#https://projecteuler.net/).
 
 I will add new solutions by the time:
-- A simple machine learning project worrking on **generic sales data** of a supermarket.
+- A simple machine learning project working on **generic sales data** of a supermarket.
 
 ## 2. Repository Review <a id='sec2'></a>
 
