@@ -22,11 +22,11 @@ Currently, the repository contains the following modules:
 1. Collatz conjecture (problem 14),
 2. Langtons Ant (problem 349).
 
-### Collatz conjecture (Project Euler Problem 14) <a id='sec21'></a>
+### 2.1. Collatz conjecture (Project Euler Problem 14) <a id='sec21'></a>
 
 See the module docstring involving a detailed description of the problem and the solution.
 
-### Langton's Ant (Project Euler Problem 349) <a id='sec21'></a>
+### 2.1. Langton's Ant (Project Euler Problem 349) <a id='sec21'></a>
 
 See the module docstring involving a detailed description of the problem and the solution.
 Additionally, the directory contains two modules:
