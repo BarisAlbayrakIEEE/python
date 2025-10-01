@@ -27,11 +27,11 @@ Solutions:
     HENCE, THE PROBLEM IS BOUNDED (THE LOOP ENDS UP WITH 1).
     BUT THEORITICALLY, THERE IS NO PROOF FOR THE CONJECTURE.
     AS ITS NOT PROVEN YET, THE CODE MUST INSPECT CONVERGENCE.
-    THE CONVERGENCE CRITERIA IS NOT IMPPLEMENTED IN THIS SHEET FOR SIMPLICITY.
+    THE CONVERGENCE CRITERIA IS NOT IMPLEMENTED IN THIS SHEET FOR SIMPLICITY.
     HENCE, THE PROGRAM MAY FALL INTO AN INFINITE LOOP,
     IF THERE EXIST EXCEPTIONAL NUMBERS FOR THE CONJECTURE (A DISPROVE).
 
-  Solution 1 (Direct solution):
+  Solution 1 (Brute force solution):
     Description:
       Create a loop from 3 to the input max number,
       For each number in the loop, determine the sequence ending with 1
@@ -64,8 +64,7 @@ Solutions:
           Otherwise, continue with the new cycle.
 
       With this method, each number is visitted only once.
-
-      The sequence is determined with a recursive function
+      The sequence is determined with a recursive function.
 
     Time complexity:
       Cannot be determined (see time complexity for Solution1).
@@ -99,15 +98,9 @@ def find_next_val(val):
 
 
 
-
-
-
-
 '''
 *******************************************
-*******************************************
 SOLUTION 1
-*******************************************
 *******************************************
 '''
 
@@ -164,20 +157,9 @@ def solution_1(limit_val):
 
 
 
-
-
-
-
-
-
-
-
-
 '''
 *******************************************
-*******************************************
 SOLUTION 2
-*******************************************
 *******************************************
 '''
 
@@ -292,13 +274,6 @@ def solution_2(limit_val):
       n = i
 
   return n, c_max
-
-
-
-
-
-
-
 
 
 
