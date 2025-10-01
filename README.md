@@ -29,13 +29,3 @@ See the module docstring involving a detailed description of the problem and the
 ### 2.1. Langton's Ant (Project Euler Problem 349) <a id='sec21'></a>
 
 See the module docstring involving a detailed description of the problem and the solution.
-Additionally, the directory contains two modules:
-1. PE_P349_LangtonsAnt.py
-2. PE_P349_LangtonsAnt_Modern.py: A modern solution improving the traditional solution.
-
-The 1st one demonstrates a brute force solution looping through the path of the ant.
-The modern solution improves the brute force approach in two ways:
-- the definition of the move of the ant and
-- the pattern detection algorithm.
-
-See the docstring of PE_P349_LangtonsAnt_Modern.py for the details.
