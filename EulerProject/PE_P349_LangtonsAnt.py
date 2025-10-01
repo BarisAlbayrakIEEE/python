@@ -3,7 +3,6 @@ Description:
   Project Euler Problem #349
   Langton's ant
   https://projecteuler.net/problem=349
-  Method: Brute force
 
 Nomenclature:
   N: The number of moves required by Project Euler Problem #349
@@ -48,8 +47,7 @@ Method:
   
   Hence, the method contains two parts:
     1. Run the ant for P1 moves without pattern detection.
-    2. Run the ant for [P2 - P1] moves, performing pattern detection once
-       in every w moves.
+    2. Run the ant for [P2 - P1] moves, performing pattern detection once in every w moves.
   
   `detect_pattern` method applies an optimized KMP method for the pattern detection.
   See the method's docstring for the details.
@@ -67,7 +65,7 @@ Method:
     a. Current grid location in x-direction
     b. Current grid location in y-direction
   
-  The five input parameters yield [8 * ARRAY_SIZE_GRID^2] possible values
+  The five input parameters yield [8 * ARRAY_SIZE_GRID ^ 2] possible values
   for the 2nd move id.
   
   By defining the move ids, we can normalize
@@ -126,7 +124,7 @@ Space Complexity:
   The row and column-wise size of the travel is limited to Z (ARRAY_SIZE_GRID).
   See Nomenclature section for P1, P2, and Z.
   
-  The arrays listed in the Method section are the sources used.
+  The arrays listed in the Method section are the resources used.
   They are static and allocated by P2 and Z.
   Hence, the space complexity is S(aP2) + S(bZ^2) where
   a and b are constants and P2, Z are independent.
@@ -166,7 +164,7 @@ Time Complexity:
   
   The detection algorithm loops through the occurrences of the current move ID
   from the p-th till the n-th in the backward direction.
-  Hence, the 1st loop runs for [(p - n) ~ p] times.
+  Hence, the 1st loop runs for p times.
   
   The 2nd loop performs the comparison of the move IDs
   to check whether they are repeating n times or not.
@@ -181,8 +179,8 @@ Time Complexity:
   
   Hence, the time complexity for pattern detection is:
     Sum(njr), where j is [1, p]
-  which yields:
-    [O(T^3) - O(P1^3)] / w ~ O(T^3) / w.
+  which yields to:
+    [O(T^3) - O(P1^3)] / w   ~   [O(T^3) / w].
   
   Now, the time complexity is cubic.
   
@@ -207,7 +205,8 @@ Time Complexity:
   
   The runtime is less than a second for the best case.
   
-  Note that, the algorithm contains only the basic operations like bit equality, increment, decrement, list/array random access, etc.
+  Note that, the algorithm contains only the basic operations
+  like bit equality, increment, decrement, list/array random access, etc.
 """
 
 import numpy as np
