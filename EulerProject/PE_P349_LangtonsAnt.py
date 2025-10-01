@@ -51,7 +51,8 @@ Method:
     2. Run the ant for [P2 - P1] moves, performing pattern detection once
        in every w moves.
   
-  See `detect_pattern` method's docstring for the details of the pattern detection.
+  `detect_pattern` method applies an optimized KMP method for the pattern detection.
+  See the method's docstring for the details.
   
   Each move of the travel is assigned to two ids,
   one excluding the grid information while the other including.
@@ -344,150 +345,10 @@ def get_move_ids(
   
   coeff_clm = np.uint32(8)
   coeff_row = np.uint32(coeff_clm * np.uint32(ARRAY_SIZE_GRID))
-  move_id_full_clm = np.uint32(
-    coeff_clm * np.uint32(current_clm - 1) +
-    np.uint32(move_id_reduced))
   move_id_full = np.uint32(
-    coeff_row * np.uint32(current_row - 1) +
-    move_id_full_clm)
+    np.uint32(coeff_row * (current_row - 1)) +
+    np.uint32(coeff_clm * (current_clm - 1) + move_id_reduced))
   return move_id_reduced, move_id_full
-
-def detect_pattern(current_move_index, pattern_repeat_count_req):
-  """
-  Description:
-    Let's assume that the current move is the kth occurrence of the reduced move id, rmi.
-    The method inspects the previous occurrences of rmi
-    to determine whether one of them forms a pattern repeated n times.
-    See Nomenclature section of the module docstring for the definition of n.
-  
-  Parameters:
-    current_move_index: int
-      The index of the current move
-    pattern_repeat_count_req: np.uint8
-      The required number of repeats for a pattern to be accepted
-  
-  Returns:
-    move_index_pattern_start: uint16
-      The move index where the pattern starts formation
-    move_index_pattern_end: uint16
-      The move index where the pattern ends
-  
-  Method:
-    The method is based on the occurrences of a reduced move id.
-    Consider the reduced move ids as letters (a, b, c, ...).
-    Consider the sequence of reduced move ids as a string: ...abacadabacadabacada
-    Consider "a" is the reduced move id corresponding to the input move.
-    As you can see, abacad is the pattern we are looking for,
-    but in that pattern, "a" is repeated many times.
-    Consider, the last "a" is the kth occurrence of "a".
-    The method inspects the (k-1)th, (k-2)th, ... nth occurrences of "a"
-    if any satisfies the pattern rules:
-      (k-1)th: ad: Fail
-      (k-2)th: acad: Fail
-      (k-3)th: abacad: Success
-    See the Nomenclature section in the module docstring for the definition of "n".
-    
-    1. Get the reduced move id for the input move index.
-    2. Loop through the previous occurrences of the reduced move id,
-       starting from the last one till the nth one.
-    
-    For the ith cycle of the 1st loop:
-    3. Assume the ith previous occurrence of the reduced move id is the 1st move of the pattern.
-    4. Determine the length of the pattern:
-       The distance from the ith previous occurrence to the input move minus 1.
-    5. Run another loop with the range of the input pattern repeat requirement.
-    
-    For the jth cycle of the 2nd loop:
-    6. Run another loop with a range of pattern length.
-    
-    For the kth cycle of the 3rd loop:
-    7. Inspect the reduced and the full move ids to see whether a pattern exists.
-    
-    8. Return the pattern move indices if found, otherwise return None.
-  
-  Modifies:
-    None
-  """
-  # Get the current move id
-  move_id_reduced = MOVE_INDEX_TO_ID_REDUCED[current_move_index]
-  
-  # Loop through the previous occurrences of the input move id,
-  # starting from the last one till the 1st one: range(last, 1st, -1)
-  _range = range(
-    MOVE_ID_TO_REDUCED_OCCURRENCE[move_id_reduced] - 1,
-    pattern_repeat_count_req,
-    -1)
-  for pattern_move_id_count in _range:
-    # Assume the ith previous occurrence is the 1st move of the pattern
-    pattern_start_move_index_ith = MOVE_ID_TO_REDUCED_INDEX[
-      move_id_reduced,
-      pattern_move_id_count]
-  
-    # Determine the length of the pattern:
-    # The distance from the ith previous occurrence to the input move minus 1
-    pattern_length = current_move_index - pattern_start_move_index_ith
-  
-    # Inspect if there exist enough moves for pattern inspection
-    pattern_start_move_index_1st = (
-      pattern_start_move_index_ith -
-      pattern_length * (pattern_repeat_count_req + 1))
-    if pattern_start_move_index_1st < 1:
-      return None, None
-  
-    # Inspect if a pattern satisfying the pattern requirements exists
-    check_pattern = inspect_pattern_repeated_req(
-      pattern_repeat_count_req,
-      pattern_length,
-      pattern_start_move_index_ith)
-  
-    # Return the pattern move indices if the pattern requirements are satisfied
-    if check_pattern:
-      move_index_pattern_start = pattern_start_move_index_ith
-      move_index_pattern_end = move_index_pattern_start + pattern_length - 1
-      return move_index_pattern_start, move_index_pattern_end
-  
-  # The current move index does not satisfy the pattern requirements
-  return None, None
-
-def inspect_pattern_repeated_req(
-    pattern_repeat_count_req,
-    pattern_length,
-    pattern_start_move_index_ith):
-  """
-  Description:
-    Inspects the reduced and the full move ids to check whether a sequence of the 
-    pattern_length number of moves starting at the ith move index repeats n times.
-
-  Parameters:
-    pattern_repeat_count_req: np.uint8
-      The required number of repeats for a pattern to be accepted
-    pattern_length: np.uint16
-      The length of the inspected pattern
-    pattern_start_move_index_ith: np.uint16
-      The move index where the inspected pattern starts
-
-  Returns:
-    bool: True if a pattern repeats for pattern_repeat_count_req
-
-  Modifies:
-    None
-  """
-  # Run a loop with the range of the input pattern repeat requirement
-  for i_pattern_repeat in range(pattern_repeat_count_req):
-    # The pattern starting move index for the jth pattern repeat
-    pattern_start_move_index_jth = (
-      pattern_start_move_index_ith -
-      pattern_length * (i_pattern_repeat + 1))
-
-    # Inspect the reduced and the full move ids for the jth pattern repeat
-    if not inspect_pattern_once(
-        pattern_length,
-        pattern_start_move_index_ith,
-        pattern_start_move_index_jth):
-      return False
-
-  # The pattern detection not failed -> A pattern repeating n times found
-  return True
 
 def inspect_pattern_once(
     pattern_length,
@@ -495,6 +356,9 @@ def inspect_pattern_once(
     pattern_start_move_index_jth):
   """
   Description:
+    Performs the inspections involved in the 3rd loop
+    described in the docstring of detect_pattern function.
+
     Consider two sequences of moves with the same length (pattern_length):
       1. Starting from pattern_start_move_index_ith
       2. Starting from pattern_start_move_index_jth
@@ -537,6 +401,147 @@ def inspect_pattern_once(
 
   # None of the corresponding moves failed -> A pattern found
   return True
+
+def inspect_pattern_repeated_req(
+    pattern_repeat_count_req,
+    pattern_length,
+    pattern_start_move_index_ith):
+  """
+  Description:
+    Performs the inspections involved in the 2nd loop
+    described in the docstring of detect_pattern function.
+    Inspects the reduced and the full move ids to check whether a sequence of the 
+    pattern_length number of moves starting at the ith move index repeats n times.
+
+  Parameters:
+    pattern_repeat_count_req: np.uint8
+      The required number of repeats for a pattern to be accepted
+    pattern_length: np.uint16
+      The length of the inspected pattern
+    pattern_start_move_index_ith: np.uint16
+      The move index where the inspected pattern starts
+
+  Returns:
+    bool: True if a pattern repeats for pattern_repeat_count_req
+
+  Modifies:
+    None
+  """
+  # Run a loop with the range of the input pattern repeat requirement
+  for i_pattern_repeat in range(pattern_repeat_count_req):
+    # The pattern starting move index for the jth pattern repeat
+    pattern_start_move_index_jth = (
+      pattern_start_move_index_ith -
+      pattern_length * (i_pattern_repeat + 1))
+
+    # Inspect the reduced and the full move ids for the jth pattern repeat
+    if not inspect_pattern_once(
+        pattern_length,
+        pattern_start_move_index_ith,
+        pattern_start_move_index_jth):
+      return False
+
+  # The pattern detection not failed -> A pattern repeating n times found
+  return True
+
+def detect_pattern(current_move_index, pattern_repeat_count_req):
+  """
+  Description:
+    Let's assume that the current move is the kth occurrence of
+    the reduced move id (rmi) corresponding to the input move id.
+    The method applies an optimized KMP in order to detect
+    whether a pattern exists starting from the rmi.
+    The optimized KMP examines the occurances of the rmis instead of inspecting the rmis.
+    The pattern requirement is achieved when
+    the sequence of the occurances repeats n times periodically.
+    See Nomenclature section of the module docstring for the definition of n.
+
+  Parameters:
+    current_move_index: int
+      The index of the current move
+    pattern_repeat_count_req: np.uint8
+      The required number of repeats for a pattern to be accepted
+
+  Returns:
+    move_index_pattern_start: uint16
+      The move index where the pattern starts formation
+    move_index_pattern_end: uint16
+      The move index where the pattern ends
+
+  Method:
+    The method is an optimized KMP method based on the occurrences of the reduced move ids.
+    Consider the reduced move ids as letters (a, b, c, ...).
+    Consider the sequence of reduced move ids as a string: ...abacadabacadabacada
+    Consider "a" is the reduced move id corresponding to the input move.
+    As you can see, abacad is the pattern we are looking for,
+    but in that pattern, "a" is repeated many times.
+    Consider, the last "a" is the kth occurrence of "a".
+    The method inspects the (k-1)th, (k-2)th, ... nth occurrences of "a"
+    if any satisfies the pattern rules.
+    For the above example (...abacadabacadabacada):
+      (k-1)th: Fail: the current sequence is 'ad' while the previous sequence is 'ac'
+      (k-2)th: Fail: the current sequence is 'acad' while the previous sequence is 'adab'
+      (k-3)th: Success: both the current and the previous sequences are 'abacad'
+    The sequence shall repeat pattern_repeat_count_req times.
+
+    Hence, the pseudocode is:
+      1. Get the reduced move id for the input move index.
+      2. Loop through (Loop1) the previous occurrences of the reduced move id,
+         starting from the last one till the nth one.
+      3. For the ith cycle of Loop1:
+         Assume the ith previous occurrence of the rmi is the 1st move of the pattern.
+      4. Determine the length of the pattern:
+         The distance from the ith previous occurrence to the input move minus 1.
+      5. Run another loop (Loop2) with the range of the input pattern repeat requirement.
+      6. For the jth cycle of Loop2:
+         Run another loop (Loop3) with a range of pattern length.
+      7. For the kth cycle of Loop3:
+         Inspect the reduced and the full move ids to see whether a pattern exists.
+      8. Return the pattern move indices if found, otherwise return None.
+    
+    The above pseudocode involves three loops.
+    The 1st loop is handled by this function.
+    The 2nd loop is handled by inspect_pattern_repeated_req function.
+    The 3rd loop is handled by inspect_pattern_once function.
+
+  Modifies:
+    None
+  """
+  # Get the current move id
+  move_id_reduced = MOVE_INDEX_TO_ID_REDUCED[current_move_index]
+  
+  # Loop through the previous occurrences of the input move id,
+  # starting from the last one till the 1st one: range(last, 1st, -1)
+  range_ = range(
+    MOVE_ID_TO_REDUCED_OCCURRENCE[move_id_reduced] - 1,
+    pattern_repeat_count_req,
+    -1)
+  for pattern_move_id_count in range_:
+    # Assume the ith previous occurrence is the 1st move of the pattern
+    pattern_start_move_index_ith = MOVE_ID_TO_REDUCED_INDEX[
+      move_id_reduced,
+      pattern_move_id_count]
+  
+    # Determine the length of the pattern:
+    # The distance from the ith previous occurrence to the input move minus 1
+    pattern_length = current_move_index - pattern_start_move_index_ith
+  
+    # Inspect if there exist enough moves for pattern inspection
+    pattern_start_move_index_1st = (
+      pattern_start_move_index_ith -
+      pattern_length * (pattern_repeat_count_req + 1))
+    if pattern_start_move_index_1st < 1:
+      return None, None
+  
+    # Return the pattern move indices if the pattern requirements are satisfied
+    if inspect_pattern_repeated_req(
+        pattern_repeat_count_req,
+        pattern_length,
+        pattern_start_move_index_ith):
+      return pattern_start_move_index_ith, pattern_start_move_index_ith + pattern_length - 1
+  
+  # The current move index does not satisfy the pattern requirements
+  return None, None
 
 def perform_limited_travel(
     initials,
